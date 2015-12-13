@@ -99,20 +99,19 @@ def parse_user_args():
 
     
 def get_prob_point(point,Sigma,mu_L,Sigma_L,rsTs):
+    # split up 6D point into two 3D points, initial and final
     p_i = point[:3]
     p_f = point[3:]
-    
-    prior_i = (multivariate_normal.pdf(p_i,
-                                             mean=mu_L,
-                                             cov=Sigma_L))
-    prior_f = (multivariate_normal.pdf(p_f,
-                                             mean=mu_L,
-                                             cov=Sigma_L))
-    joint_prior = prior_i+prior_f
-    
+    # convert each point to 2D
     q_i = convert_3D_to_2D(p_i)
     q_f = convert_3D_to_2D(p_f)
+    
+    # get prior prob for each point, then multiply them for joint prob
+    prior_i = (multivariate_normal.pdf(p_i,mean=mu_L,cov=Sigma_L))
+    prior_f = (multivariate_normal.pdf(p_f,mean=mu_L,cov=Sigma_L))
+    joint_prior = prior_i*prior_f
 
+    # evaluate p_i and p_f on all given, 2D rendered points
     probs=[]
     for dataPoint in rsTs:
         r = dataPoint[:2]
@@ -121,7 +120,6 @@ def get_prob_point(point,Sigma,mu_L,Sigma_L,rsTs):
         q_s = q_s.flatten()
         prob_r = (multivariate_normal.pdf(r,mean=q_s,cov=Sigma))
         probs.append(prob_r*joint_prior)
-
     sumProbs = np.sum(probs)
     return sumProbs
 
@@ -138,7 +136,8 @@ if __name__ == "__main__":
     ts = np.loadtxt(inputsFile).reshape(20,1)
     rsTs = np.concatenate((rs,ts),axis=1)
 
-    oldPoint = propose_new_point((20,20,20,20,20,20))
+    seed = np.random.uniform(-50,50,6)
+    oldPoint = propose_new_point(seed)
     iPoints=[]
     fPoints=[]
     for i in range(10000):
@@ -161,8 +160,3 @@ if __name__ == "__main__":
 
     plot_3D_points(iPoints)
     plot_3D_points(fPoints)
-    
-    # for i in range(10000):
-    #     proposal = propose_new_point(oldPoint)
-    #     oldPoint = accept_point(oldPoint,proposal,mean=mu_L,cov=Sigma_L)
-    #     points.append(oldPoint)
