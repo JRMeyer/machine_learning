@@ -42,7 +42,9 @@ def plot_3D_points(points):
     # gca = Get the current axes, creating one if necessary
     ax = fig.gca(projection='3d')
     ax.plot(x,y,z)
-    ax.legend()
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
     plt.show()
     
 def propose_new_point(oldPoint):
@@ -58,6 +60,9 @@ def propose_new_point(oldPoint):
 
 
 def convert_3D_to_2D(point3D,M):
+    '''
+    where M is our camera matrix, and point3D is a (x,y,z) tuple
+    '''
     # 3,1 column vector for a single point in 3D space
     p = np.ndarray(shape=(3,1),buffer=np.array(point3D),dtype=int)
     # need to append '1' to p for matrix multiplication
@@ -82,18 +87,21 @@ def parse_user_args():
 
     
 def get_prob_point(point,Sigma,mu_L,Sigma_L,rsTs,M):
+    '''
+    given a 6D point, covariance matrices, mean, input points
+    and camera matrix, find out how probable the two 3D points of 
+    6D point are given the input data
+    '''
     # split up 6D point into two 3D points, initial and final
     p_i = point[:3]
     p_f = point[3:]
     # convert each point to 2D
     q_i = convert_3D_to_2D(p_i,M)
     q_f = convert_3D_to_2D(p_f,M)
-    
     # get prior prob for each point, then multiply them for joint prob
     prior_i = (multivariate_normal.pdf(p_i,mean=mu_L,cov=Sigma_L))
     prior_f = (multivariate_normal.pdf(p_f,mean=mu_L,cov=Sigma_L))
     joint_prior = prior_i*prior_f
-
     # evaluate p_i and p_f on all given, 2D rendered points
     probs=[]
     for dataPoint in rsTs:
@@ -108,6 +116,8 @@ def get_prob_point(point,Sigma,mu_L,Sigma_L,rsTs,M):
 
     
 def metropolis_hastings(seedPoint,Sigma,mu_L,Sigma_L,rsTs,numIterations,M):
+    # since we are searching in 6D space, for convenience return two lists
+    # each containing 3D points for the initial and final point of 3D line
     iPoints=[]
     fPoints=[]
     oldPoint = seedPoint
@@ -116,14 +126,19 @@ def metropolis_hastings(seedPoint,Sigma,mu_L,Sigma_L,rsTs,numIterations,M):
         probOldPoint = get_prob_point(oldPoint,Sigma,mu_L,Sigma_L,rsTs,M)
         probProposal = get_prob_point(proposal,Sigma,mu_L,Sigma_L,rsTs,M)
         acceptProb = np.log(probProposal)- np.log(probOldPoint)
+        # when proposal is more likely than oldPoint, the ratio of proposal to
+        # olPoint will be greater than 1 (we log values, but it doesn't matter)
+        # Becuase np.random.random() generates numbers from 0 to 1, if
+        # proposal is more likely than oldPoint, this is always true
         if np.log(np.random.random()) < acceptProb:
-            # when proposal is more likely than old point, this is always true
             accepted = proposal
         else:
             accepted = oldPoint
+        # use the accepted point as center of Gaussian for next step
         oldPoint = accepted
         iPoints.append(oldPoint[:3])
         fPoints.append(oldPoint[3:])
+        # print is nice to see the convergence of values to a distribution
         print(oldPoint)
     return iPoints,fPoints
 
@@ -143,14 +158,12 @@ def MAP_estimation(seedPoint,Sigma,mu_L,Sigma_L,rsTs,numIterations,M):
         oldPoint = accepted
         iPoints.append(oldPoint[:3])
         fPoints.append(oldPoint[3:])
-        print(oldPoint)
     return iPoints,fPoints
 
-if __name__ == "__main__":
-    args = parse_user_args()
-    coordsFile = args.infile1
-    inputsFile = args.infile2
-
+def demo(coordsFile,inputsFile):
+    '''
+    a demo of metropolis hastings with some visualizations
+    '''
     Sigma = ((0.05)**2)*np.identity(2)
     Sigma_L = 10*np.identity(3)
     # mean prior distribution on line
@@ -169,99 +182,29 @@ if __name__ == "__main__":
     seed = np.random.uniform(-20,20,6)
     numIterations=10000
     
-    ### UNCOMMENT FOR QUESTION 1
-    ##
-    #
-    # iPoints, fPoints = metropolis_hastings(seed,Sigma,mu_L,Sigma_L,rsTs,
-    #                                        numIterations,M)
+    iPoints, fPoints = metropolis_hastings(seed,Sigma,mu_L,Sigma_L,rsTs,
+                                           numIterations,M)
 
-    # plot_3D_points(iPoints)
-    # plot_3D_points(fPoints)
-
-
-    ### UNCOMMENT FOR QUESTION 2
-    ##
-    #
-    # iPoints, fPoints = MAP_estimation(seed,Sigma,mu_L,Sigma_L,rsTs,
-    #                                   numIterations,M)
-
-    # plot_3D_points(iPoints)
-    # plot_3D_points(fPoints)
-    # print("MAP for initial 3D point:")
-    # print(iPoints[-1])
-    # print("MAP for final 3D point:")
-    # print(fPoints[-1])
-    
-    # x1,y1,z1 = zip(*iPoints)
-    # x2,y2,z2 = zip(*fPoints)
-
-    # weights = [x1,y1,z1,x2,y2,z2]
-    # for weight in weights:
-    #     plot_1D_points(weight)
-
-
-    ### UNCOMMENT FOR QUESTION 3
-    ##
-    #
-    # numBurnIn = 200
-    # iPoints, fPoints = metropolis_hastings(seed,Sigma,mu_L,Sigma_L,rsTs,
-    #                                        numIterations,M)
-
-    # iPointsArray = np.array(iPoints[numBurnIn:])
-    # meanP_i = np.mean(iPointsArray, axis=0)
-    # print(meanP_i)
-
-    # fPointsArray = np.array(fPoints[numBurnIn:])
-    # meanP_f = np.mean(fPointsArray, axis=0)
-    # print(meanP_f)
-
-    
-    ### UNCOMMENT FOR QUESTION 4
-    ##
-    #
-    # numBurnIn = 200
-    # t_s = 1.5
-    # iPoints, fPoints = metropolis_hastings(seed,Sigma,mu_L,Sigma_L,rsTs,
-    #                                        numIterations,M)
-
-    # iPointsArray = np.array(iPoints[numBurnIn:])
-    # meanP_i = np.mean(iPointsArray, axis=0)
-
-    # fPointsArray = np.array(fPoints[numBurnIn:])
-    # meanP_f = np.mean(fPointsArray, axis=0)
-    # p_i, p_f = meanP_f, meanP_f
-
-    # q_i = convert_3D_to_2D(p_i,M)
-    # q_f = convert_3D_to_2D(p_i,M)
-    
-    # q_s = q_i + (q_f-q_i)*t_s
-    # print(p_i,q_i)
-
-    ### UNCOMMENT FOR QUESTION 5
-    ##
-    #
-    # 3,4 camera matrix
-    M_prime = np.ndarray(shape=(3,4),
-                         buffer=np.array([0,0,1,-5,
-                                          0,1,0,0,
-                                          -1,0,0,5]),
-                         dtype=int)
-    
-    iPoints, fPoints = MAP_estimation(seed,Sigma,mu_L,Sigma_L,rsTs,
-                                      numIterations,M)
+    # plot the searches for each 3D point
     plot_3D_points(iPoints)
     plot_3D_points(fPoints)
-    print("MAP for initial 3D point:")
-    print(iPoints[-1])
-    print("MAP for final 3D point:")
-    print(fPoints[-1])
+
+    # plot the search for each weight (dimension)
+    x1,y1,z1 = zip(*iPoints)
+    x2,y2,z2 = zip(*fPoints)
+    weights = [x1,y1,z1,x2,y2,z2]
+    for weight in weights:
+        plot_1D_points(weight)
+
     
-    iPoints, fPoints = MAP_estimation(seed,Sigma,mu_L,Sigma_L,rsTs,
-                                      numIterations,M_prime)
-    plot_3D_points(iPoints)
-    plot_3D_points(fPoints)
-    print("MAP for initial 3D point:")
-    print(iPoints[-1])
-    print("MAP for final 3D point:")
-    print(fPoints[-1])
+if __name__ == "__main__":
+    args = parse_user_args()
+    coordsFile = args.infile1
+    inputsFile = args.infile2
+
+    demo(coordsFile,inputsFile)
+
+
+
     
+
