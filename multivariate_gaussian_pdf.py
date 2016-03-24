@@ -7,6 +7,7 @@ D==2 because I wanted to plot the curve in 3D space
 
 
 import numpy as np
+from matplotlib import cm
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
@@ -28,17 +29,19 @@ if __name__ == "__main__":
     mu = np.ndarray(shape=(2,), buffer=np.array([.5,.5]),dtype=float)
     Sigma = np.ndarray(shape=(2,2), buffer=np.array([[.05,0.],
                                                      [0.,.05]]),dtype=float)
-    numPoints = 1000
+    numPoints = 100
     z = []
     x = np.random.rand(numPoints)
     y = np.random.rand(numPoints)
 
+    numPoints = len(x)
     for i in range(numPoints):
         point = np.asarray([x[i],y[i]])
         z_i = multi_gauss_pdf(point,mu,Sigma)
         z.append(z_i)
 
     fig = plt.figure()
+
     ax = fig.add_subplot(111, projection='3d')
     ax.scatter(x,y,z)
     plt.show()

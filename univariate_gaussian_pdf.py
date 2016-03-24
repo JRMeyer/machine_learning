@@ -19,9 +19,9 @@ if __name__ == "__main__":
     # transform the function which takes in scalar into a function which 
     # takes a vector but performs element-wise operations
     uni_gauss_pdf = np.vectorize(uni_gauss_pdf)
-    mu=50
-    sigma=10
-    x = np.arange(100)
+    mu=12.5
+    sigma=5
+    x = range(1,25)
     y = uni_gauss_pdf(x,mu,sigma)
     plt.plot(x,y)
     plt.show()
