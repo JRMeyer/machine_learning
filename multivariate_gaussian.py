@@ -11,20 +11,6 @@ from matplotlib import cm
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
-def eval_data_on_pdf(x,mu,Sigma):
-    '''
-    x is a vector of length D
-    mu is a vector of length D
-    Sigma is a matrix where both dimensions are length D
-
-    Given data and sufficient statistics for a Gaussian pdf, calculate the
-    probability of that Gaussian generating that data
-    '''
-    D = len(x)
-    y = (1/np.sqrt((2*np.pi)**D * np.linalg.det(Sigma)) * 
-         np.exp(-1/2 * np.dot((x-mu).T, np.dot( np.linalg.inv(Sigma), (x-mu)))))
-    return y
-
 
 def generate_data(num_samples):
     '''
@@ -35,7 +21,7 @@ def generate_data(num_samples):
     '''
     from sklearn.datasets.samples_generator import make_blobs
     
-    cluster_std = ([.25, 1.5])
+    cluster_std = ([.5, .5])
     features, labels = make_blobs(n_samples=num_samples,
                                   centers=2,
                                   n_features=2,
@@ -58,15 +44,16 @@ def mle_est_mu(x,y,labels):
     assuming 2 dimensional features right now (hence x,y)
     assuming label == 1 when the feature belongs to the Gaussian, 0 elsewhere
 
-    $  \hat{\mu} = \frac{\sum\limits_{n=1}^{N} \gamma_{n} \cdot x_{n}}
-                   {\sum\limits_{n=1}^{N} \gamma_{n}}$
+    $ \mathbf{\mu_{MLE}} = \frac{\sum\limits_{n=1}^{N} \gamma_{n} 
+    \cdot \mathbf{x_{n}}}{\sum\limits_{n=1}^{N} \gamma_{n}} $ 
+
     in the above equation, gamma is the label (ie. 0 or 1)
 
     MLE calculation
     '''
     
-    mu_x = np.dot(labels,x)/np.sum(labels)
-    mu_y = np.dot(labels,y)/np.sum(labels)
+    mu_x = np.dot(labels,x) / np.sum(labels)
+    mu_y = np.dot(labels,y) / np.sum(labels)
 
     mu = np.ndarray(shape=(2,), buffer=np.array([mu_x,mu_y]),dtype=float)
     
@@ -82,8 +69,8 @@ def mle_est_Sigma(x,y,mu,labels):
 
     returns Sigma, which is a diagonal covariance matrix
 
-    $\sigma_{t}(i) = \sqrt{\frac{\sum\limits_{n=1}^{N}\gamma_{n} \Big(x_{n} - 
-                     \mu_{n}\Big)^{2}}{\sum\limits_{n=1}^{N}\gamma_{n}}} $
+    $  \mathbf{\sigma_{MLE}^{2}} = \frac{\sum\limits_{n=1}^{N}\gamma_{n} 
+    \Big(\mathbf{x_{n}} - \mathbf{\mu}\Big)^{2}}{\sum\limits_{n=1}^{N}\gamma_{n}}$
 
     MLE calculation
 
@@ -92,15 +79,16 @@ def mle_est_Sigma(x,y,mu,labels):
     mu_x = mu[0]
     mu_y = mu[1]
     
-    sigma_x = np.sqrt(np.sum(np.multiply(labels,np.square(x - mu_x)))/np.sum(labels))
-    sigma_y = np.sqrt(np.sum(np.multiply(labels,np.square(y - mu_y)))/np.sum(labels))
+    sigma_sqrd_x = np.sum(np.multiply(labels, np.square(x - mu_x) )) / np.sum(labels)
+    sigma_sqrd_y = np.sum(np.multiply(labels, np.square(y - mu_y) )) / np.sum(labels)
 
-    sigma = np.ndarray(shape=(2,), buffer=np.array([sigma_x,sigma_y]),dtype=float)
-    Sigma = np.diag(sigma)
+    sigma_sqrd = np.ndarray(shape=(2,),
+                            buffer=np.array([sigma_sqrd_x,sigma_sqrd_y]),
+                            dtype=float)
+    
+    Sigma = np.diag(sigma_sqrd)
     
     return(Sigma)
-
-
 
 
 def map_est_mu(x_new,y_new, mu_old, labels_new, tau):
@@ -116,8 +104,8 @@ def map_est_mu(x_new,y_new, mu_old, labels_new, tau):
     assuming 2 dimensional features right now (hence x,y)
     assuming label == 1 when the feature belongs to the Gaussian, 0 elsewhere
 
-    $  \hat{\mu} = \frac{\tau \cdot \mu_{o} + \sum\limits_{n=1}^{N} \gamma_{n} 
-    \cdot x_{n}}{\tau + \sum\limits_{n=1}^{N} \gamma_{n}}$
+    $ \frac{\tau \cdot \mathbf{\mu_{org}} + \sum\limits_{n=1}^{N} \gamma_{n} 
+    \cdot \mathbf{x_{n}}}{\tau + \sum\limits_{n=1}^{N} \gamma_{n}}$
 
     in the above equation, gamma is the label (ie. 0 or 1)
 
@@ -127,8 +115,8 @@ def map_est_mu(x_new,y_new, mu_old, labels_new, tau):
     mu_x_old = mu_old[0]
     mu_y_old = mu_old[1]
     
-    mu_x_new = tau*mu_x_old + np.dot(labels_new,x_new)/(tau + np.sum(labels_new))
-    mu_y_new = tau*mu_y_old + np.dot(labels_new,y_new)/(tau + np.sum(labels_new))
+    mu_x_new = (tau*mu_x_old + np.dot(labels_new,x_new)) / (tau + np.sum(labels_new))
+    mu_y_new = (tau*mu_y_old + np.dot(labels_new,y_new)) / (tau + np.sum(labels_new))
 
     mu_new = np.ndarray(shape=(2,), buffer=np.array([mu_x_new,mu_y_new]),dtype=float)
     
@@ -137,31 +125,32 @@ def map_est_mu(x_new,y_new, mu_old, labels_new, tau):
 
 def map_est_Sigma(x,y,mu,labels):
     '''
-    x = D dimensional vector, number of data points
-    y = D dimensional vector
-    labels = D dimensional vector
-    mu = N dimensional vector, number of dimensions of features (2d here)
-
-    returns Sigma, which is a diagonal covariance matrix
-
-    $\Sigma_{t}(i) = \sqrt{\frac{\sum\limits_{n=1}^{N}\gamma_{n} \Big(x_{n} - 
-                     \mu_{n}\Big)^{2}}{\sum\limits_{n=1}^{N}\gamma_{n}}} $
-
-    MLE calculation
-
+    According to Gauvain and later Shinoda:
+ 
+    \mathbf{\Sigma_{MAP}} = \frac{\mathbf{\Sigma_{org}} +  
+    \tau \cdot (\mathbf{\mu_{org}} -  \mathbf{\mu_{new}})^{2} + 
+    \sum\limits_{n=1}^{N} \gamma_{n} \Big(\mathbf{x_{n}} -  
+    \mathbf{\mu_{new}}\Big)^{2} }{(\alpha - p ) + 
+    \sum\limits_{n=1}^{N}\gamma_{n}}
     '''
-    
-    mu_x = mu[0]
-    mu_y = mu[1]
-    
-    sigma_x = np.sqrt(np.sum(np.multiply(labels,np.square(x - mu_x)))/np.sum(labels))
-    sigma_y = np.sqrt(np.sum(np.multiply(labels,np.square(y - mu_y)))/np.sum(labels))
-
-    sigma = np.ndarray(shape=(2,), buffer=np.array([sigma_x,sigma_y]),dtype=float)
-    Sigma = np.diag(sigma)
     
     return(Sigma)
 
+
+
+def eval_data_on_pdf(x,mu,Sigma):
+    '''
+    x is a vector of length D
+    mu is a vector of length D
+    Sigma is a matrix where both dimensions are length D
+
+    Given data and sufficient statistics for a Gaussian pdf, calculate the
+    probability of that Gaussian generating that data
+    '''
+    D = len(x)
+    y = (1/np.sqrt((2*np.pi)**D * np.linalg.det(Sigma)) * 
+         np.exp(-1/2 * np.dot((x-mu).T, np.dot( np.linalg.inv(Sigma), (x-mu)))))
+    return y
 
 
 
@@ -202,34 +191,28 @@ if __name__ == "__main__":
     x,y,labels_1 = generate_data(num_samples=100)
     labels_2 = (labels_1 - 1)*(-1)
 
-    # plot training data
-    plt.scatter(x,y,c=labels_1)
-    plt.show()
-    
     # MLE for means
     mu_1 = mle_est_mu(x,y,labels_1)
-#    mu_2 = mle_est_mu(x,y,labels_2)
 
     # MLE for sigmas
     Sigma_1 = mle_est_Sigma(x,y,mu_1,labels_1)
-#    Sigma_2 = mle_est_Sigma(x,y,mu_2,labels_2)
 
-    # plot points on pdf
-    plot_pdf(mu_1,Sigma_1,1000)
-#    plot_pdf(mu_2,Sigma_2,1000)
+    # # plot training data
+    # plt.scatter(x,y,c=labels_1)
+    # plt.show()
+    # # plot points on pdf
+    # plot_pdf(mu_1,Sigma_1,1000)
 
 
     # ADAPTATION
     # make data and labels
-    x_new,y_new,labels_1_new = generate_data(num_samples=10)
+    x_new,y_new,labels_1_new = generate_data(num_samples=1000)
     labels_2_new = (labels_1_new - 1)*(-1)
+    mu_mle_adaptation_data = mle_est_mu(x_new,y_new,labels_2_new)
 
-    # plot training data
-    plt.scatter(x_new,y_new,c=labels_1_new)
-    plt.show()
+    print("mu_1_mle_old: ", mu_1)
+    print("mu_mle_adaptation_data: ",  mu_mle_adaptation_data)
     
     # MAP for means with data from OTHER blob
-    mu_1_map = map_est_mu(x_new,y_new, mu_1, labels_2_new, tau=1.5)
-
-
-    plot_pdf(mu_1_map,Sigma_1,1000)
+    mu_1_map = map_est_mu(x_new,y_new, mu_1, labels_2_new, tau=.2)
+    print("mu_1_map: .2 : ", mu_1_map)
