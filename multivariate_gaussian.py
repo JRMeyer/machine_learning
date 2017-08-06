@@ -1,9 +1,21 @@
+#!/usr/bin/python3
 '''
-This script will give densities for D-dimensional points from a Gaussian
-distribution. The code should work where D>2, but I've got it set up for 
-D==2 because I wanted to plot the curve in 3D space
-'''
+Joshua MEYER 2017
+<jrmeyer.github.io>
 
+This script does some different things with multivariate Gaussians.
+
+It will estimate parameters mu and Sigma from data via MLE.
+
+Also, given adaptation data it will adapt previous parameters via MAP. 
+
+You can also plot data points or the gaussians themselves (via repeated 
+point estimation)
+
+Right now the script assumes 2-D data. Also, it assumes single component
+Gaussians, not GMMs.
+
+'''
 
 
 import numpy as np
