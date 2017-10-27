@@ -193,7 +193,7 @@ def with_hidden_layer_demo():
     learning_rate=.001
 
     example=0
-    num_examples=10000000
+    num_examples=1000000
 
     W_1,b_1,W_2,b_2 = with_hidden_initialize_weights_biases(numFeatures=3,
                                                             numHidden=3,
