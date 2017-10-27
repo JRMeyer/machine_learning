@@ -209,16 +209,23 @@ if __name__ == "__main__":
     # MLE for sigmas
     Sigma_1 = mle_est_Sigma(x,y,mu_1,labels_1)
 
-    # # plot training data
-    # plt.scatter(x,y,c=labels_1)
-    # plt.show()
-    # # plot points on pdf
-    # plot_pdf(mu_1,Sigma_1,1000)
+    # MLE for means
+    mu_2 = mle_est_mu(x,y,labels_2)
+
+    # MLE for sigmas
+    Sigma_2 = mle_est_Sigma(x,y,mu_2,labels_2)
+
+    # plot training data
+    plt.scatter(x,y,c=labels_1)
+    plt.show()
+    # plot points on pdf
+    plot_pdf(mu_1,Sigma_1,2500)
+    plot_pdf(mu_2,Sigma_2,2500)
 
 
     # ADAPTATION
     # make data and labels
-    x_new,y_new,labels_1_new = generate_data(num_samples=1000)
+    x_new,y_new,labels_1_new = generate_data(num_samples=10)
     labels_2_new = (labels_1_new - 1)*(-1)
     mu_mle_adaptation_data = mle_est_mu(x_new,y_new,labels_2_new)
 
@@ -228,3 +235,9 @@ if __name__ == "__main__":
     # MAP for means with data from OTHER blob
     mu_1_map = map_est_mu(x_new,y_new, mu_1, labels_2_new, tau=.2)
     print("mu_1_map: .2 : ", mu_1_map)
+
+    # plot training data
+    plt.scatter(x_new,y_new,c=labels_2_new)
+    plt.show()
+    # plot points on pdf
+    plot_pdf(mu_1_map,Sigma_1,1000)

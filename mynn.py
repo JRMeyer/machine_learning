@@ -45,6 +45,7 @@ def update_weights_l(weights_l, activation_lminus1, error_l, learning_rate):
  
 def update_biases_l(biases_l, error_l, learning_rate):
     dC_db = compute_dC_db_l(error_l)
+    print(dC_db)
     new_biases = biases_l - learning_rate*dC_db
     return new_biases
 
@@ -80,47 +81,83 @@ def feedforward(X, W_1,b_1, W_2,b_2):
 
 
 
-learning_rate=.1
+if __name__ == "__main__":
 
-X1 = np.ndarray(buffer=np.array([-100,500,.1]),
-               shape=(3,1),
-               dtype=float)
+    
+    Xs=[]
+    Ys=[]
+    for i in range(10):
+        for j in range(10):
+            for k in range(10):
+                num=str(i)+str(j)+str(k)
+                if int(num) < 333:
+                    label=np.array([1.,0.,0.])
+                elif int(num) < 666:
+                    label=np.array([0.,1.,0.])
+                else:
+                    label=np.array([0.,0.,1.])
+                    
+                X = np.ndarray(buffer=np.array([i,j,k]),
+                               shape=(3,1),
+                               dtype=float)
+                    
+                Y = np.ndarray(buffer=label,
+                               shape=(3,1),
+                               dtype=float)
+                    
+                Xs.append(X)
+                Ys.append(Y)
+                    
+                    
+                        
+    W_1,b_1,W_2,b_2 = initialize_weights_biases(numFeatures=3,
+                                                numHidden=3,
+                                                numLabels=3)
+        
+        
+        
+        
+    epoch=0
+    num_epochs=10
+    
+    learning_rate=.001
 
+    print(len(Xs))
+    
+    while epoch<num_epochs:
+        
+        for i in range(1000):
 
-Y1 = np.ndarray(buffer=np.array([1,0]),
-               shape=(2,1),
-               dtype=float)
-
-
-W_1,b_1,W_2,b_2 = initialize_weights_biases(numFeatures=3,
-                                            numHidden=5,
-                                            numLabels=2)
-
-
-z_1,a_1,z_2,a_2 = feedforward(X, W_1, b_1, W_2, b_2)
-
-
-error_final = compute_error_final(a_final=a_2, z_final=z_2, gold_label=Y)
-
-W_2 = update_weights_l(weights_l = W_2, 
-                       activation_lminus1 = a_1, 
-                       error_l = error_final, 
-                       learning_rate = learning_rate)
-
-b_2 = update_biases_l(biases_l = b_2,
-                      error_l = error_final,
-                      learning_rate = learning_rate)
-
-
-error_l = compute_error_l(weights_lplus1 = W_2, 
-                          error_lplus1 = error_final, 
-                          z_l = z_1)
-
-W_1 = update_weights_l(weights_l = W_1, 
-                       activation_lminus1 = X, 
-                       error_l = error_l, 
-                       learning_rate = learning_rate)
-
-b_1= update_biases_l(biases_l = b_1,
-                     error_l = error_l,
-                     learning_rate = learning_rate)
+            X=Xs[i]
+            Y=Ys[i]
+            
+            z_1,a_1,z_2,a_2 = feedforward(X, W_1, b_1, W_2, b_2)
+            
+            error_final = compute_error_final(a_final=a_2, z_final=z_2, gold_label=Y)
+            
+            W_2 = update_weights_l(weights_l = W_2, 
+                                   activation_lminus1 = a_1, 
+                                   error_l = error_final, 
+                                   learning_rate = learning_rate)
+            
+            b_2 = update_biases_l(biases_l = b_2,
+                                  error_l = error_final,
+                                  learning_rate = learning_rate)
+            
+            
+            error_l = compute_error_l(weights_lplus1 = W_2, 
+                                      error_lplus1 = error_final, 
+                                      z_l = z_1)
+            
+            W_1 = update_weights_l(weights_l = W_1, 
+                                   activation_lminus1 = X, 
+                                   error_l = error_l, 
+                                   learning_rate = learning_rate)
+            
+            b_1= update_biases_l(biases_l = b_1,
+                                 error_l = error_l,
+                                 learning_rate = learning_rate)
+            
+            
+            epoch+=1
+        
