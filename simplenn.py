@@ -198,7 +198,9 @@ def with_hidden_layer_demo():
     W_1,b_1,W_2,b_2 = with_hidden_initialize_weights_biases(numFeatures=3,
                                                             numHidden=3,
                                                             numLabels=3)
-    
+
+    print("Beginning Training")
+
     while example<num_examples:
         
         i=random.randint(0,999)
@@ -238,6 +240,7 @@ def with_hidden_layer_demo():
         example+=1
 
     ### VISUALIZATIONS !!! ###
+    print("Starting Viz")
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
 
