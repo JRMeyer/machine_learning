@@ -1,11 +1,14 @@
 import numpy as np
 import random
 
+
+
 def sigmoid(z):
     return 1/(1+np.exp(-z))
 
 def sigmoid_prime(z):
     return sigmoid(z)*(1-sigmoid(z))
+
 
 ###
 ### FOUR EQUATIONS OF BACKPROP
@@ -53,7 +56,7 @@ def update_biases_l(biases_l, error_l, learning_rate):
     new_biases = biases_l - learning_rate*dC_db
     return new_biases
 
-def with_hidden_initialize_weights_biases(numFeatures, numHidden, numLabels):
+def initialize_weights_biases(numFeatures, numHidden, numLabels):
     # Values are randomly sampled from a Gaussian with a standard deviation of:
     #     sqrt(6 / (numInputNodes + numOutputNodes + 1))
     W_1 = np.random.normal(size=(numFeatures,numHidden),
@@ -62,72 +65,53 @@ def with_hidden_initialize_weights_biases(numFeatures, numHidden, numLabels):
     b_1 = np.random.normal(size=(numHidden,1),
                            loc=0,
                            scale=(np.sqrt(6/numFeatures+numHidden+1)))
-    W_2 = np.random.normal(size=(numHidden,numLabels),
+    
+    W_2A = np.random.normal(size=(numHidden,numLabels),
                            loc=0,
                            scale=(np.sqrt(6/numHidden+numLabels+1)))
-    b_2 = np.random.normal(size=(numLabels,1),
+    b_2A = np.random.normal(size=(numLabels,1),
                            loc=0,
                            scale=(np.sqrt(6/numHidden+numLabels+1)))
-    return W_1, b_1, W_2, b_2
 
-
-def initialize_weights_biases(numFeatures, numLabels):
-    # Values are randomly sampled from a Gaussian with a standard deviation of:
-    #     sqrt(6 / (numInputNodes + numOutputNodes + 1))
-    W_1 = np.random.normal(size=(numFeatures,numLabels),
-                           loc=0,
-                           scale=(np.sqrt(6/numFeatures+numLabels+1)))
-    b_1 = np.random.normal(size=(numLabels,1),
-                           loc=0,
-                           scale=(np.sqrt(6/numFeatures+numLabels+1)))
-    return W_1, b_1
-
-
-def initialize_weights_biases_hidden(numFeatures, numHidden, numLabels):
-    # Values are randomly sampled from a Gaussian with a standard deviation of:
-    #     sqrt(6 / (numInputNodes + numOutputNodes + 1))
-    W_1 = np.random.normal(size=(numFeatures,numHidden),
-                           loc=0,
-                           scale=(np.sqrt(6/numFeatures+numHidden+1)))
-    b_1 = np.random.normal(size=(numHidden,1),
-                           loc=0,
-                           scale=(np.sqrt(6/numFeatures+numHidden+1)))
-    W_2 = np.random.normal(size=(numHidden,numLabels),
+    W_2B = np.random.normal(size=(numHidden,numLabels),
                            loc=0,
                            scale=(np.sqrt(6/numHidden+numLabels+1)))
-    b_2 = np.random.normal(size=(numLabels,1),
+    b_2B = np.random.normal(size=(numLabels,1),
                            loc=0,
                            scale=(np.sqrt(6/numHidden+numLabels+1)))
-    return W_1, b_1, W_2, b_2
+    return W_1, b_1, W_2A, b_2A, W_2B, b_2B
 
 
-def feedforward(X,W_1,b_1):
+def feedforward_pass(X, # input
+                     W_1, b_1, # first hidden layer
+                     W_2A, b_2A, # output layer A
+                     W_2B, b_2B): # output layer B
+    
     ### LAYER 1
     z_1 = np.add( np.dot( W_1.T,X ), b_1 )
     a_1 = sigmoid(z_1)
-    return z_1,a_1
+
+    ### LAYER 2A
+    z_2A = np.add( np.dot( W_2A.T,a_1 ), b_2A )
+    a_2A = sigmoid(z_2A)
+
+    ### LAYER 2B
+    z_2B = np.add( np.dot( W_2B.T,a_1 ), b_2B )
+    a_2B = sigmoid(z_2B)
+
+    return z_1,a_1,z_2A,a_2A,z_2B,a_2B
 
 
-def feedforward_hidden(X, W_1,b_1, W_2,b_2):
-    ### LAYER 1
-    z_1 = np.add( np.dot( W_1.T,X ), b_1 )
-    a_1 = sigmoid(z_1)
-    ### LAYER 2
-    z_2 = np.add( np.dot( W_2.T,a_1 ), b_2 )
-    a_2 = sigmoid(z_2)
-    return z_1,a_1,z_2,a_2
-
-
-def create_data():
+def create_data(limit):
     Xs=[]
     Ys=[]
     for i in range(10):
         for j in range(10):
             for k in range(10):
                 num=str(i)+str(j)+str(k)
-                if int(num) < 333:
+                if int(num) < limit:
                     label=np.array([1.,0.,0.])
-                elif int(num) < 666:
+                elif int(num) < 2*limit:
                     label=np.array([0.,1.,0.])
                 else:
                     label=np.array([0.,0.,1.])
@@ -142,90 +126,127 @@ def create_data():
                     
                 Xs.append(X)
                 Ys.append(Y)
+                
+    return(Xs, Ys)
+
+
+def create_data(XorY):
+    
+    Xs=[]
+    Ys=[]
+
+    for anchor1 in range(10):
+        for anchor2 in range(1,10):
+            if anchor1 == 0:
+                label=np.array([1.,0.,0.])
+            else:
+                label=np.array([0.,1.,0.])
+
+            if XorY == 'x':
+                
+                X = np.ndarray(buffer=np.array([float(anchor1),float(anchor2),0.0]),
+                               shape=(3,1),
+                               dtype=float)
+
+            elif XorY == 'y':
+                
+                X = np.ndarray(buffer=np.array([float(anchor2),float(anchor1),0.0]),
+                               shape=(3,1),
+                               dtype=float)
+                
+                
+            Y = np.ndarray(buffer=label,
+                           shape=(3,1),
+                           dtype=float)
+                    
+            Xs.append(X)
+            Ys.append(Y)
+
+    print('done creating data')
+                
     return(Xs, Ys)
 
                 
-def no_hidden_layer_demo():
+def demo():
 
-    Xs, Ys = create_data()
+    Xs, Ys_A = create_data('x')
+    Xs, Ys_B = create_data('y')
     
     learning_rate=.001
 
     example=0
-    num_examples=100000
-
-    W_1,b_1 = initialize_weights_biases(numFeatures=3,
-                                        numLabels=3)
+    num_examples=1000
     
-    while example<num_examples:
-        
-        i=random.randint(0,999)
-
-        X=Xs[i]
-        Y=Ys[i]
-        
-        z_1,a_1 = feedforward(X, W_1, b_1)
-        
-        error_final = compute_error_final(a_final=a_1, z_final=z_1, gold_label=Y)
-        
-        W_1 = update_weights_l(weights_l = W_1, 
-                               activation_lminus1 = X, 
-                               error_l = error_final, 
-                               learning_rate = learning_rate)
-        
-        b_1 = update_biases_l(biases_l = b_1,
-                              error_l = error_final,
-                              learning_rate = learning_rate)
-
-                    
-        
-        example+=1
-        
-        print(b_1)
-
-
-
-                
-def with_hidden_layer_demo():
-
-    Xs, Ys = create_data()
-    
-    learning_rate=.001
-
-    example=0
-    num_examples=1000000
-
-    W_1,b_1,W_2,b_2 = with_hidden_initialize_weights_biases(numFeatures=3,
+    W_1,b_1,W_2A,b_2A,W_2B,b_2B = initialize_weights_biases(numFeatures=3,
                                                             numHidden=3,
                                                             numLabels=3)
-
+    
     print("Beginning Training")
 
     while example<num_examples:
         
-        i=random.randint(0,999)
+        i=random.randint(0,5)
+        print(i)
 
         X=Xs[i]
-        Y=Ys[i]
+        Y_A=Ys_A[i]
+        Y_B=Ys_B[i]
 
                     
-        z_1,a_1,z_2,a_2 = feedforward_hidden(X, W_1, b_1, W_2, b_2)
+        z_1,a_1,z_2A,a_2A,z_2B,a_2B = feedforward_pass(X, W_1, b_1, W_2A, b_2A , W_2B, b_2B )
+
         
-        error_final = compute_error_final(a_final=a_2, z_final=z_2, gold_label=Y)
+        #
+        # CALCULATE ERROR AND UPDATE TASK A
+        #
+
         
-        W_2 = update_weights_l(weights_l = W_2, 
+        error_final_A = compute_error_final(a_final=a_2A, z_final=z_2A, gold_label=Y_A)
+        
+        W_2A = update_weights_l(weights_l = W_2A, 
                                activation_lminus1 = a_1, 
-                               error_l = error_final, 
+                               error_l = error_final_A, 
                                learning_rate = learning_rate)
         
-        b_2 = update_biases_l(biases_l = b_2,
-                              error_l = error_final,
+        b_2A = update_biases_l(biases_l = b_2A,
+                              error_l = error_final_A,
+                              learning_rate = learning_rate)
+
+
+
+        #
+        # CALCULATE ERROR AND UPDATE TASK B
+        #
+
+        
+        error_final_B = compute_error_final(a_final=a_2B, z_final=z_2B, gold_label=Y_B)
+        
+        W_2B = update_weights_l(weights_l = W_2B, 
+                               activation_lminus1 = a_1, 
+                               error_l = error_final_B, 
+                               learning_rate = learning_rate)
+        
+        b_2B = update_biases_l(biases_l = b_2B,
+                              error_l = error_final_B,
                               learning_rate = learning_rate)
         
+
+
+        #
+        # CALCULATE ERROR AND UPDATE SHARED HIDDEN LAYER
+        #
+
         
-        error_l = compute_error_l(weights_lplus1 = W_2, 
-                                  error_lplus1 = error_final, 
+        error_l_A = compute_error_l(weights_lplus1 = W_2A, 
+                                  error_lplus1 = error_final_A, 
                                   z_l = z_1)
+
+        error_l_B = compute_error_l(weights_lplus1 = W_2B, 
+                                  error_lplus1 = error_final_B, 
+                                  z_l = z_1)
+
+        error_l = error_l_A + error_l_B
+        
         
         W_1 = update_weights_l(weights_l = W_1, 
                                activation_lminus1 = X, 
@@ -239,6 +260,8 @@ def with_hidden_layer_demo():
         
         example+=1
 
+        
+
     ### VISUALIZATIONS !!! ###
     print("Starting Viz")
     import matplotlib.pyplot as plt
@@ -251,22 +274,25 @@ def with_hidden_layer_demo():
         for j in range(10):
             for k in range(10):
                 num=str(i)+str(j)+str(k)
-                X=Xs[int(num)]
+                try:
+                    X=Xs[int(num)]
+                except:
+                    break
                 
                 if int(num) < 333:
                     
-                    z_1,a_1,z_2,a_2 = feedforward_hidden(X, W_1, b_1, W_2, b_2)
-                    data_plot[num]=[X,a_1,a_2, 'r']
+                    z_1,a_1,z_2A,a_2A,z_2B,a_2B = feedforward_pass(X, W_1, b_1, W_2A, b_2A, W_2B, b_2B)
+                    data_plot[num]=[X,a_1,a_2A,a_2B, 'r']
                     
                 elif int(num) < 666:
 
-                    z_1,a_1,z_2,a_2 = feedforward_hidden(X, W_1, b_1, W_2, b_2)
-                    data_plot[num]=[X,a_1,a_2, 'b']
+                    z_1,a_1,z_2A,a_2A,z_2B,a_2B = feedforward_pass(X, W_1, b_1, W_2A, b_2A, W_2B, b_2B)
+                    data_plot[num]=[X,a_1,a_2A,a_2B, 'b']
        
                 else:
 
-                    z_1,a_1,z_2,a_2 = feedforward_hidden(X, W_1, b_1, W_2, b_2)
-                    data_plot[num]=[X,a_1,a_2, 'g']
+                    z_1,a_1,z_2A,a_2A,z_2B,a_2B = feedforward_pass(X, W_1, b_1, W_2A, b_2A, W_2B, b_2B)
+                    data_plot[num]=[X,a_1,a_2A,a_2B, 'g']
 
     x_org=[]
     y_org=[]
@@ -274,15 +300,18 @@ def with_hidden_layer_demo():
     x_a1=[]
     y_a1=[]
     z_a1=[]
-    x_a2=[]
-    y_a2=[]
-    z_a2=[]
+    x_a2A=[]
+    y_a2A=[]
+    z_a2A=[]
+    x_a2B=[]
+    y_a2B=[]
+    z_a2B=[]
     color=[]
     
     for i in range(1000):
         i="{0:03}".format(i)
 
-        X,a_1,a_2, color_i = data_plot[str(i)]
+        X,a_1,a_2A,a_2B, color_i = data_plot[str(i)]
 
         # org data plot
         x_org.append(X[0])
@@ -294,10 +323,15 @@ def with_hidden_layer_demo():
         y_a1.append(a_1[1])
         z_a1.append(a_1[2])
 
-        # final activation plot
-        x_a2.append(a_2[0])
-        y_a2.append(a_2[1])
-        z_a2.append(a_2[2])
+        # final activation plot A
+        x_a2A.append(a_2A[0])
+        y_a2A.append(a_2A[1])
+        z_a2A.append(a_2A[2])
+
+        # final activation plot B
+        x_a2B.append(a_2B[0])
+        y_a2B.append(a_2B[1])
+        z_a2B.append(a_2B[2])
         
         color.append(color_i)
 
@@ -314,9 +348,15 @@ def with_hidden_layer_demo():
     
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    ax.scatter(x_a2,y_a2,z_a2,color=color)
+    ax.scatter(x_a2A,y_a2A,z_a2A,color=color)
+    plt.show()
+
+    
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(x_a2B,y_a2B,z_a2B,color=color)
     plt.show()
 
     ### END VISUALIZATIONS ###
 if __name__ == '__main__':
-    with_hidden_layer_demo()
+    demo()
